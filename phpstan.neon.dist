@@ -1,0 +1,25 @@
+parameters:
+    excludes_analyse:
+    paths:
+        - src
+    level: max
+    checkExplicitMixed: false
+    ignoreErrors:
+        -
+            message: '#Call to an undefined method Symfony\\Component\\Config\\Definition\\Builder\\NodeDefinition::children\(\).#'
+            count: 1
+            path: ./src/DependencyInjection
+        -
+            message: '#.*NodeParentInterface|null.*#'
+            count: 1
+            path: ./src/DependencyInjection
+        -
+            message: '#Call to an undefined method object::clear().*#'
+            count: 1
+            path: ./src/Service/ResetManager/DoctrineResetManager
+        -
+            message: '#Call to an undefined method object::getConnection().*#'
+            count: 1
+            path: ./src/Service/ResetManager/DoctrineResetManager
+        -
+            identifier: missingType.iterableValue

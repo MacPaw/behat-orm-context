@@ -57,6 +57,20 @@
             "BehatOrmContext\\Tests\\": "tests"
         }
     },
+    "scripts": {
+        "composer-validate": "composer validate",
+        "phpstan": "./vendor/bin/phpstan analyse -l max",
+        "code-style": "./vendor/bin/phpcs",
+        "code-style-fix": "./vendor/bin/phpcbf",
+        "phpunit": "./vendor/bin/phpunit",
+        "phpunit-html-coverage": "XDEBUG_MODE=coverage ./vendor/bin/phpunit --coverage-html=coverage",
+        "dev-checks": [
+            "composer validate",
+            "@phpstan",
+            "@code-style",
+            "@phpunit"
+        ]
+    },
     "config": {
         "allow-plugins": {
             "dealerdirect/phpcodesniffer-composer-installer": true
