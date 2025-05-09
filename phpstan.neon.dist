@@ -4,6 +4,3 @@ parameters:
         - src
     level: max
     checkExplicitMixed: false
-    ignoreErrors:
-        -
-            identifier: missingType.iterableValue

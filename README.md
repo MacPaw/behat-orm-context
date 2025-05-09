@@ -70,7 +70,6 @@ By default, the bundle has the following configuration:
 
 ```yaml
 behat_orm_context:
-  kernel_reset_managers: []
 ```
 
 You can override it manually in your `config/packages/test/behat_orm_context.yaml`:

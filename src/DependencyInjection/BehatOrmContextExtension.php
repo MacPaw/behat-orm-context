@@ -12,7 +12,7 @@ use Symfony\Component\DependencyInjection\Loader\XmlFileLoader;
 class BehatOrmContextExtension extends Extension
 {
     /**
-     * @param array<array> $configs
+     * @param array<array<mixed>> $configs
      *
      * {@inheritdoc}
      */
