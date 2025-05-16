@@ -1,0 +1,79 @@
+{
+    "name": "macpaw/behat-orm-context",
+    "description": "Behat Context for testing Symfony ORM",
+    "type": "symfony-bundle",
+    "license": "MIT",
+    "keywords": [
+        "MacPaw",
+        "symfony",
+        "behat",
+        "BDD",
+        "Context",
+        "ORM"
+    ],
+    "authors": [
+        {
+            "name": "Vladislav Hanziuk",
+            "email": "ganzyukv@macpaw.com",
+            "homepage": "https://macpaw.com/",
+            "role": "Software Engineer"
+        },
+        {
+            "name": "Serhii Donii",
+            "email": "serhii.donii@macpaw.com",
+            "homepage": "https://macpaw.com/",
+            "role": "Software Engineer"
+        },
+        {
+            "name": "Yozhef Hisem",
+            "email": "hisemjo@gmail.com",
+            "homepage": "https://macpaw.com/",
+            "role": "Software Engineer"
+        }
+    ],
+    "require": {
+        "ext-json": "*",
+        "php": "^7.4 || ^8.0",
+        "behat/behat": "^3.0",
+        "symfony/config": "^4.4 || ^5.4 || ^6.0 || ^7.0",
+        "symfony/dependency-injection": "^4.4 || ^5.4.34 || ^6.0 || ^7.0.2",
+        "symfony/http-kernel": "^4.4 || ^5.4 || ^6.0 || ^7.0",
+        "macpaw/similar-arrays": "^1.0",
+        "doctrine/orm": "^2.0"
+    },
+    "require-dev": {
+        "phpstan/phpstan": "^1.12",
+        "phpunit/phpunit": "^9.6",
+        "slevomat/coding-standard": "^7.2",
+        "squizlabs/php_codesniffer": "^3.12"
+    },
+    "autoload": {
+        "psr-4": {
+            "BehatOrmContext\\": "src"
+        }
+    },
+    "autoload-dev": {
+        "psr-4": {
+            "BehatOrmContext\\Tests\\": "tests"
+        }
+    },
+    "scripts": {
+        "composer-validate": "composer validate",
+        "phpstan": "./vendor/bin/phpstan analyse -l max",
+        "code-style": "./vendor/bin/phpcs",
+        "code-style-fix": "./vendor/bin/phpcbf",
+        "phpunit": "./vendor/bin/phpunit",
+        "phpunit-html-coverage": "XDEBUG_MODE=coverage ./vendor/bin/phpunit --coverage-html=coverage",
+        "dev-checks": [
+            "composer validate",
+            "@phpstan",
+            "@code-style",
+            "@phpunit"
+        ]
+    },
+    "config": {
+        "allow-plugins": {
+            "dealerdirect/phpcodesniffer-composer-installer": true
+        }
+    }
+}
