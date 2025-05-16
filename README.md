@@ -2,7 +2,7 @@
 
 |  Version  |                       Build Status                        |                              Code Coverage                               |
 |:---------:|:---------------------------------------------------------:|:------------------------------------------------------------------------:|
-| `master`  |  [![CI][master Build Status Image]][master Build Status]  |  [![Coverage Status][master Code Coverage Image]][master Code Coverage]  |
+| `main`    |  [![CI][main Build Status Image]][main Build Status]      |   [![Coverage Status][main Code Coverage Image]][main Code Coverage]     |
 | `develop` | [![CI][develop Build Status Image]][develop Build Status] | [![Coverage Status][develop Code Coverage Image]][develop Code Coverage] |
 
 Behat context for testing Doctrine ORM integration.
@@ -27,12 +27,12 @@ The bundle provides several Behat step definitions for ORM testing:
 
 This bundle is released under the MIT license. See the included [LICENSE](LICENSE) file for more information.
 
-[master Build Status]: https://github.com/macpaw/behat-orm-context/actions?query=workflow%3ACI+branch%3Amaster
-[master Build Status Image]: https://github.com/macpaw/behat-orm-context/workflows/CI/badge.svg?branch=master
+[main Build Status]: https://github.com/macpaw/behat-orm-context/actions?query=workflow%3ACI+branch%main
+[main Build Status Image]: https://github.com/macpaw/behat-orm-context/workflows/CI/badge.svg?branch=main
 [develop Build Status]: https://github.com/macpaw/behat-orm-context/actions?query=workflow%3ACI+branch%3Adevelop
 [develop Build Status Image]: https://github.com/macpaw/behat-orm-context/workflows/CI/badge.svg?branch=develop
-[master Code Coverage]: https://codecov.io/gh/macpaw/behat-orm-context/branch/master
-[master Code Coverage Image]: https://img.shields.io/codecov/c/github/macpaw/behat-orm-context/master?logo=codecov
+[main Code Coverage]: https://codecov.io/gh/macpaw/behat-orm-context/branch/main
+[main Code Coverage Image]: https://img.shields.io/codecov/c/github/macpaw/behat-orm-context/main?logo=codecov
 [develop Code Coverage]: https://codecov.io/gh/macpaw/behat-orm-context/branch/develop
 [develop Code Coverage Image]: https://img.shields.io/codecov/c/github/macpaw/behat-orm-context/develop?logo=codecov
 
