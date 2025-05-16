@@ -5,82 +5,27 @@
 | `master`  |  [![CI][master Build Status Image]][master Build Status]  |  [![Coverage Status][master Code Coverage Image]][master Code Coverage]  |
 | `develop` | [![CI][develop Build Status Image]][develop Build Status] | [![Coverage Status][develop Code Coverage Image]][develop Code Coverage] |
 
+Behat context for testing Doctrine ORM integration.
+
+## Description
+
+This bundle provides a Behat context for testing your application's interaction with a database using Doctrine ORM.
+
 ## Installation
 
-### Step 1: Download the Bundle
+See the [installation instructions](docs/install.md).
 
-Open a command console, enter your project directory and execute:
+## Features
 
-#### Applications that use Symfony Flex [in progress](https://github.com/MacPaw/BehatRedisContext/issues/2)
+The bundle provides several Behat step definitions for ORM testing:
 
-```bash
-composer require --dev macpaw/behat-orm-context
-```
+* [See X entities in repository](docs/ORMContext/see-count-in-repository.md) - Check if the count of entities in the repository matches expected
+* [See entity with ID](docs/ORMContext/see-entity-in-repository-with-id.md) - Check if an entity with a specific ID exists
+* [See entity with properties](docs/ORMContext/see-entity-in-repository-with-properties.md) - Check if an entity with specific properties exists
 
-#### Applications that don't use Symfony Flex
+## License
 
-Open a command console, enter your project directory and execute the following command to download the latest stable
-version of this bundle:
-
-```bash
-composer require --dev macpaw/behat-orm-context
-```
-
-This command requires you to have Composer installed globally, as explained
-in the [installation chapter](https://getcomposer.org/doc/00-intro.md)
-of the Composer documentation.
-
-Then, enable the bundle by adding it to the list of registered bundles
-in the `app/AppKernel.php` file of your project:
-
-```php
-<?php
-// app/AppKernel.php
-
-// ...
-class AppKernel extends Kernel
-{
-    public function registerBundles()
-    {
-        $bundles = array(
-            // ...
-            BehatOrmContext\BehatOrmContextBundle::class => ['test' => true],
-        );
-
-        // ...
-    }
-
-    // ...
-}
-```
-
----
-
-### Step 2: Configure Behat
-
-Go to `behat.yml`:
-
-```yaml
-# ...
-contexts:
-  - BehatOrmContext\Context\OrmContext
-# ...
-```
-
----
-
-## Configuration
-
-By default, the bundle has the following configuration:
-
-```yaml
-behat_orm_context:
-```
-
-You can override it manually in your `config/packages/test/behat_orm_context.yaml`:
-
----
-
+This bundle is released under the MIT license. See the included [LICENSE](LICENSE) file for more information.
 
 [master Build Status]: https://github.com/macpaw/behat-orm-context/actions?query=workflow%3ACI+branch%3Amaster
 [master Build Status Image]: https://github.com/macpaw/behat-orm-context/workflows/CI/badge.svg?branch=master
