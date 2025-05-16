@@ -1,70 +1,56 @@
 # Installation
 
-## Step 1: Download the Bundle
+## Step 1: Install the Bundle
 
-Open a command console, enter your project directory and execute:
-
-### Applications that use Symfony Flex
+Run the following command in your project directory to install the bundle as a development dependency:
 
 ```bash
   composer require --dev macpaw/behat-orm-context
-```
+````
 
-### Applications that don't use Symfony Flex
+> If you are using Symfony Flex, the bundle will be registered automatically.
+> Otherwise, follow Step 2 to register the bundle manually.
 
-Open a command console, enter your project directory and execute the following command to download the latest stable
-version of this bundle:
+## Step 2: Register the Bundle
 
-```bash
-  composer require --dev macpaw/behat-orm-context
-```
-
-This command requires you to have Composer installed globally, as explained
-in the [installation chapter](https://getcomposer.org/doc/00-intro.md)
-of the Composer documentation.
-
-Then, enable the bundle by adding it to the list of registered bundles
-in the `app/AppKernel.php` file of your project:
+If your project does **not** use Symfony Flex or the bundle does not provide a recipe, manually register it in `config/bundles.php`:
 
 ```php
 <?php
-// app/AppKernel.php
+// config/bundles.php
 
-// ...
-class AppKernel extends Kernel
-{
-    public function registerBundles()
-    {
-        $bundles = array(
-            // ...
-            BehatOrmContext\BehatOrmContextBundle::class => ['test' => true],
-        );
-
-        // ...
-    }
-
+return [
     // ...
-}
+    BehatOrmContext\BehatOrmContextBundle::class => ['test' => true],
+];
 ```
 
-## Step 2: Configure Behat
+> ℹ️ The bundle should only be enabled in the `test` environment.
 
-Go to `behat.yml`:
+## Step 3: Configure Behat
+
+Add the ORM context to your `behat.yml`:
 
 ```yaml
-# ...
-contexts:
-  - BehatOrmContext\Context\OrmContext
-# ...
+default:
+  suites:
+    default:
+      contexts:
+        - BehatOrmContext\Context\ORMContext
 ```
 
-## Configuration
+## Step 4 (Optional): Inject a Custom ObjectManager
 
-By default, the bundle has the following configuration:
+By default, `ORMContext` uses the `doctrine.orm.entity_manager` service.
+To override this and inject a custom Doctrine ObjectManager (which implements `Doctrine\ORM\EntityManagerInterface`), 
+update your service configuration in `config/services.yaml` under the `test` environment:
 
 ```yaml
-behat_orm_context:
-  # Currently no specific configuration options are available
+when@test:
+  services:
+    BehatOrmContext\Context\ORMContext:
+      arguments:
+        $manager: '@doctrine.orm.other_entity_manager'
 ```
 
-You can override it manually in your `config/packages/test/behat_orm_context.yaml`. 
+This allows you to swap the ObjectManager used by the context without modifying the class itself.
