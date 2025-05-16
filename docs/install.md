@@ -54,8 +54,7 @@ Go to `behat.yml`:
 ```yaml
 # ...
 contexts:
-  - BehatOrmContext\Context\OrmContext:
-      manager: '@doctrine.orm.entity_manager'
+  - BehatOrmContext\Context\OrmContext
 # ...
 ```
 
