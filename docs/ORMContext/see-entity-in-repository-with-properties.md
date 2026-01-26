@@ -34,7 +34,25 @@ This step allows you to verify that a specific entity exists in the database by 
 - Validating complex entity state with multiple property conditions
 - Testing business logic that modifies entity properties
 
+#### Embedded Properties (Value Objects)
+
+Both steps support Doctrine embedded objects using dotted property paths:
+
+```gherkin
+Then I see entity "App\Entity\Balance" with properties:
+    """
+    {
+        "customerId": "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa",
+        "balanceValue.amount": "500000",
+        "balanceValue.currency": "USD",
+    }
+    """
+```
+
+The dotted notation (e.g., `balanceValue.amount`) allows querying embedded value objects defined in your entity mappings.
+
 #### Notes:
 
 - Properties with `null` values are queried using `IS NULL` condition
-- All other properties are matched using equality 
+- All other properties are matched using equality
+- Embedded property paths use dotted notation (e.g., `embeddable.field`)

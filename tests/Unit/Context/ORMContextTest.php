@@ -31,7 +31,7 @@ final class ORMContextTest extends TestCase
     public function testAndISeeCountInRepositoryFailed(): void
     {
         $context = $this->createContext('App\Entity\SomeEntity', self::COUNT);
-        self::expectException(RuntimeException::class);
+        $this->expectException(RuntimeException::class);
         $context->andISeeInRepository(self::COUNT + 1, 'App\Entity\SomeEntity');
     }
 
@@ -44,7 +44,7 @@ final class ORMContextTest extends TestCase
     public function testThenISeeCountInRepositoryFailed(): void
     {
         $context = $this->createContext('App\Entity\SomeEntity', self::COUNT);
-        self::expectException(RuntimeException::class);
+        $this->expectException(RuntimeException::class);
         $context->thenISeeInRepository(self::COUNT + 1, 'App\Entity\SomeEntity');
     }
 
@@ -580,5 +580,276 @@ final class ORMContextTest extends TestCase
         $this->expectExceptionMessage('Real count is 0, not 1');
 
         $method->invoke($context, 1, 'App\Entity\TestEntity', $expectedProperties);
+    }
+
+    public function testSeeInRepositoryWithEmbeddedPropertyPath(): void
+    {
+        $expectedProperties = [
+            'value.amount' => '500000',
+            'value.currency' => 'USD',
+        ];
+
+        // Mock ClassMetadata - not called for embedded paths
+        $metadata = $this->createMock(ClassMetadata::class);
+        $metadata->expects(self::never())
+            ->method('hasField');
+
+        // Mock QueryBuilder
+        $queryBuilder = $this->createMock(QueryBuilder::class);
+        $queryBuilder->expects(self::once())
+            ->method('from')
+            ->with('App\Entity\Balance', 'e')
+            ->willReturnSelf();
+        $queryBuilder->expects(self::once())
+            ->method('select')
+            ->with('count(e)')
+            ->willReturnSelf();
+
+        // Expect two andWhere calls with indexed parameters
+        $queryBuilder->expects(self::exactly(2))
+            ->method('andWhere')
+            ->withConsecutive(
+                ['e.value.amount = :p0'],
+                ['e.value.currency = :p1']
+            )
+            ->willReturnSelf();
+
+        $queryBuilder->expects(self::exactly(2))
+            ->method('setParameter')
+            ->withConsecutive(
+                ['p0', '500000'],
+                ['p1', 'USD']
+            )
+            ->willReturnSelf();
+
+        // Mock Query
+        $query = $this->createMock(Query::class);
+        $query->expects(self::once())
+            ->method('getSingleScalarResult')
+            ->willReturn(1);
+
+        $queryBuilder->expects(self::once())
+            ->method('getQuery')
+            ->willReturn($query);
+
+        // Mock EntityManager
+        $entityManager = $this->createMock(EntityManagerInterface::class);
+        $entityManager->expects(self::once())
+            ->method('createQueryBuilder')
+            ->willReturn($queryBuilder);
+        $entityManager->expects(self::once())
+            ->method('getClassMetadata')
+            ->with('App\Entity\Balance')
+            ->willReturn($metadata);
+
+        $context = new ORMContext($entityManager);
+
+        $reflection = new \ReflectionClass($context);
+        $method = $reflection->getMethod('seeInRepository');
+        $method->setAccessible(true);
+
+        $method->invoke($context, 1, 'App\Entity\Balance', $expectedProperties);
+    }
+
+    public function testSeeInRepositoryWithMixedRegularAndEmbeddedProperties(): void
+    {
+        $expectedProperties = [
+            'customerId' => 'customer-123',
+            'balanceValue.amount' => '100000',
+            'status' => 'active',
+        ];
+
+        // Mock ClassMetadata - only called for non-embedded fields
+        $metadata = $this->createMock(ClassMetadata::class);
+        $metadata->expects(self::exactly(2))
+            ->method('hasField')
+            ->willReturnMap([
+                ['customerId', true],
+                ['status', true]
+            ]);
+        $metadata->expects(self::exactly(2))
+            ->method('getFieldMapping')
+            ->willReturnMap([
+                ['customerId', ['type' => 'string']],
+                ['status', ['type' => 'string']]
+            ]);
+
+        // Mock QueryBuilder
+        $queryBuilder = $this->createMock(QueryBuilder::class);
+        $queryBuilder->expects(self::once())
+            ->method('from')
+            ->with('App\Entity\Balance', 'e')
+            ->willReturnSelf();
+        $queryBuilder->expects(self::once())
+            ->method('select')
+            ->with('count(e)')
+            ->willReturnSelf();
+
+        // Expect three andWhere calls
+        $queryBuilder->expects(self::exactly(3))
+            ->method('andWhere')
+            ->withConsecutive(
+                ['e.customerId = :customerId'],
+                ['e.balanceValue.amount = :p0'],
+                ['e.status = :status']
+            )
+            ->willReturnSelf();
+
+        $queryBuilder->expects(self::exactly(3))
+            ->method('setParameter')
+            ->withConsecutive(
+                ['customerId', 'customer-123'],
+                ['p0', '100000'],
+                ['status', 'active']
+            )
+            ->willReturnSelf();
+
+        // Mock Query
+        $query = $this->createMock(Query::class);
+        $query->expects(self::once())
+            ->method('getSingleScalarResult')
+            ->willReturn(1);
+
+        $queryBuilder->expects(self::once())
+            ->method('getQuery')
+            ->willReturn($query);
+
+        // Mock EntityManager
+        $entityManager = $this->createMock(EntityManagerInterface::class);
+        $entityManager->expects(self::once())
+            ->method('createQueryBuilder')
+            ->willReturn($queryBuilder);
+        $entityManager->expects(self::once())
+            ->method('getClassMetadata')
+            ->with('App\Entity\Balance')
+            ->willReturn($metadata);
+
+        $context = new ORMContext($entityManager);
+
+        $reflection = new \ReflectionClass($context);
+        $method = $reflection->getMethod('seeInRepository');
+        $method->setAccessible(true);
+
+        $method->invoke($context, 1, 'App\Entity\Balance', $expectedProperties);
+    }
+
+    public function testSeeInRepositoryWithNullEmbeddedProperty(): void
+    {
+        $expectedProperties = [
+            'value.amount' => null,
+        ];
+
+        // Mock ClassMetadata - not called for embedded paths
+        $metadata = $this->createMock(ClassMetadata::class);
+        $metadata->expects(self::never())
+            ->method('hasField');
+
+        // Mock QueryBuilder
+        $queryBuilder = $this->createMock(QueryBuilder::class);
+        $queryBuilder->expects(self::once())
+            ->method('from')
+            ->with('App\Entity\Balance', 'e')
+            ->willReturnSelf();
+        $queryBuilder->expects(self::once())
+            ->method('select')
+            ->with('count(e)')
+            ->willReturnSelf();
+
+        // Expect IS NULL for null value
+        $queryBuilder->expects(self::once())
+            ->method('andWhere')
+            ->with('e.value.amount IS NULL')
+            ->willReturnSelf();
+
+        // No setParameter for null values
+        $queryBuilder->expects(self::never())
+            ->method('setParameter');
+
+        // Mock Query
+        $query = $this->createMock(Query::class);
+        $query->expects(self::once())
+            ->method('getSingleScalarResult')
+            ->willReturn(1);
+
+        $queryBuilder->expects(self::once())
+            ->method('getQuery')
+            ->willReturn($query);
+
+        // Mock EntityManager
+        $entityManager = $this->createMock(EntityManagerInterface::class);
+        $entityManager->expects(self::once())
+            ->method('createQueryBuilder')
+            ->willReturn($queryBuilder);
+        $entityManager->expects(self::once())
+            ->method('getClassMetadata')
+            ->with('App\Entity\Balance')
+            ->willReturn($metadata);
+
+        $context = new ORMContext($entityManager);
+
+        $reflection = new \ReflectionClass($context);
+        $method = $reflection->getMethod('seeInRepository');
+        $method->setAccessible(true);
+
+        $method->invoke($context, 1, 'App\Entity\Balance', $expectedProperties);
+    }
+
+    public function testSeeInRepositoryWithEmbeddedPropertyCountMismatch(): void
+    {
+        $expectedProperties = [
+            'value.amount' => '500000',
+        ];
+
+        // Mock ClassMetadata
+        $metadata = $this->createMock(ClassMetadata::class);
+        $metadata->expects(self::never())
+            ->method('hasField');
+
+        // Mock QueryBuilder
+        $queryBuilder = $this->createMock(QueryBuilder::class);
+        $queryBuilder->expects(self::once())
+            ->method('from')
+            ->willReturnSelf();
+        $queryBuilder->expects(self::once())
+            ->method('select')
+            ->willReturnSelf();
+        $queryBuilder->expects(self::once())
+            ->method('andWhere')
+            ->with('e.value.amount = :p0')
+            ->willReturnSelf();
+        $queryBuilder->expects(self::once())
+            ->method('setParameter')
+            ->with('p0', '500000')
+            ->willReturnSelf();
+
+        // Mock Query - return 0 to trigger exception
+        $query = $this->createMock(Query::class);
+        $query->expects(self::once())
+            ->method('getSingleScalarResult')
+            ->willReturn(0);
+
+        $queryBuilder->expects(self::once())
+            ->method('getQuery')
+            ->willReturn($query);
+
+        // Mock EntityManager
+        $entityManager = $this->createMock(EntityManagerInterface::class);
+        $entityManager->expects(self::once())
+            ->method('createQueryBuilder')
+            ->willReturn($queryBuilder);
+        $entityManager->expects(self::once())
+            ->method('getClassMetadata')
+            ->willReturn($metadata);
+
+        $context = new ORMContext($entityManager);
+
+        $reflection = new \ReflectionClass($context);
+        $method = $reflection->getMethod('seeInRepository');
+        $method->setAccessible(true);
+
+        $this->expectException(RuntimeException::class);
+        $this->expectExceptionMessage('Real count is 0, not 1');
+
+        $method->invoke($context, 1, 'App\Entity\Balance', $expectedProperties);
     }
 }
