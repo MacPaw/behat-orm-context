@@ -6,6 +6,7 @@ namespace BehatOrmContext\Context;
 
 use Behat\Behat\Context\Context;
 use Behat\Gherkin\Node\PyStringNode;
+use Doctrine\DBAL\Platforms\AbstractPlatform;
 use Doctrine\ORM\EntityManagerInterface;
 use Doctrine\ORM\NonUniqueResultException;
 use Doctrine\ORM\NoResultException;
@@ -24,7 +25,7 @@ final class ORMContext implements Context
 
     /**
      * @And I see :count entities :entityClass
-     * 
+     *
      * @param class-string $entityClass
      */
     public function andISeeInRepository(int $count, string $entityClass): void
@@ -34,7 +35,7 @@ final class ORMContext implements Context
 
     /**
      * @Then I see :count entities :entityClass
-     * 
+     *
      * @param class-string $entityClass
      */
     public function thenISeeInRepository(int $count, string $entityClass): void
@@ -44,7 +45,7 @@ final class ORMContext implements Context
 
     /**
      * @And I see entity :entity with id :id
-     * 
+     *
      * @param class-string $entityClass
      */
     public function andISeeEntityInRepositoryWithId(string $entityClass, string $id): void
@@ -54,7 +55,7 @@ final class ORMContext implements Context
 
     /**
      * @Then I see entity :entity with id :id
-     * 
+     *
      * @param class-string $entityClass
      */
     public function thenISeeEntityInRepositoryWithId(string $entityClass, string $id): void
@@ -64,7 +65,8 @@ final class ORMContext implements Context
 
     /**
      * @Then I see entity :entity with properties:
-     * 
+     * @And I see entity :entity with properties:
+     *
      * @param class-string $entityClass
      */
     public function andISeeEntityInRepositoryWithProperties(string $entityClass, PyStringNode $string): void
@@ -88,19 +90,20 @@ final class ORMContext implements Context
 
         if (null !== $params) {
             $metadata = $this->manager->getClassMetadata($entityClass);
+            $paramIndex = 0;
 
             foreach ($params as $columnName => $columnValue) {
+                $isEmbeddedPath = str_contains($columnName, '.');
+                $paramName = $isEmbeddedPath ? 'p' . $paramIndex++ : $columnName;
+
                 if ($columnValue === null) {
                     $query->andWhere(sprintf('e.%s IS NULL', $columnName));
+                } elseif (!$isEmbeddedPath && $this->isJsonField($metadata, $columnName)) {
+                    // Handle JSON fields with proper DQL (skip for embedded paths)
+                    $this->addJsonFieldCondition($query, $columnName, $columnValue);
                 } else {
-                    if ($this->isJsonField($metadata, $columnName)) {
-                        // Handle JSON fields with proper DQL
-                        $this->addJsonFieldCondition($query, $columnName, $columnValue);
-                    } else {
-                        // Regular field comparison
-                        $query->andWhere(sprintf('e.%s = :%s', $columnName, $columnName))
-                            ->setParameter($columnName, $columnValue);
-                    }
+                    $query->andWhere(sprintf('e.%s = :%s', $columnName, $paramName))
+                        ->setParameter($paramName, $columnValue);
                 }
             }
         }
@@ -117,7 +120,7 @@ final class ORMContext implements Context
 
     /**
      * Check if a field is mapped as JSON type
-     * 
+     *
      * @param \Doctrine\ORM\Mapping\ClassMetadata<object> $metadata
      */
     private function isJsonField(\Doctrine\ORM\Mapping\ClassMetadata $metadata, string $fieldName): bool
@@ -139,6 +142,7 @@ final class ORMContext implements Context
      */
     private function addJsonFieldCondition(QueryBuilder $query, string $fieldName, $expectedValue): void
     {
+        /** @var AbstractPlatform $platform */
         $platform = $this->manager->getConnection()->getDatabasePlatform();
         $platformName = $platform->getName();
 
