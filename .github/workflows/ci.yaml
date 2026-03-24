@@ -87,6 +87,8 @@ jobs:
             - name: Install dependencies
               run: |
                   set -e
+                  # composer.json pins platform.php 7.4 for the committed lock; CI runs on real matrix PHP.
+                  composer config --unset platform.php || true
                   V="${{ matrix.symfony-versions }}"
                   if [ -z "$V" ]; then
                     composer install --no-interaction --prefer-dist
