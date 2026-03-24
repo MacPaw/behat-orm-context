@@ -13,7 +13,6 @@ use Doctrine\ORM\EntityManagerInterface;
 use Doctrine\ORM\Mapping\ClassMetadata;
 use Doctrine\ORM\Query;
 use Doctrine\ORM\QueryBuilder;
-use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;
 use RuntimeException;
 
@@ -245,7 +244,9 @@ final class ORMContextTest extends TestCase
         return new ORMContext($entityManagerMock);
     }
 
-    #[DataProvider('jsonFieldDetectionProvider')]
+    /**
+     * @dataProvider jsonFieldDetectionProvider
+     */
     public function testIsJsonField(array $fieldMapping, bool $hasField, bool $expectedResult): void
     {
         $metadata = $this->createMock(ClassMetadata::class);
@@ -285,8 +286,11 @@ final class ORMContextTest extends TestCase
         ];
     }
 
-    #[DataProvider('normalizeJsonValueProvider')]
-    /** @param mixed $input */
+    /**
+     * @dataProvider normalizeJsonValueProvider
+     *
+     * @param mixed $input
+     */
     public function testNormalizeJsonValue($input, string $expected): void
     {
         $entityManager = $this->createMock(EntityManagerInterface::class);
@@ -316,7 +320,9 @@ final class ORMContextTest extends TestCase
         ];
     }
 
-    #[DataProvider('addJsonFieldConditionProvider')]
+    /**
+     * @dataProvider addJsonFieldConditionProvider
+     */
     public function testAddJsonFieldCondition(AbstractPlatform $platform, string $expectedWhereClause): void
     {
         $connection = $this->createMock(Connection::class);
@@ -501,7 +507,7 @@ final class ORMContextTest extends TestCase
         $setParameterCalls = [];
         $queryBuilder->expects(self::exactly(2))
             ->method('setParameter')
-            ->willReturnCallback(function (string $name, mixed $value) use (&$setParameterCalls, $queryBuilder) {
+            ->willReturnCallback(function (string $name, $value) use (&$setParameterCalls, $queryBuilder) {
                 $setParameterCalls[] = [$name, $value];
 
                 return $queryBuilder;
@@ -671,7 +677,7 @@ final class ORMContextTest extends TestCase
         $setParameterCalls = [];
         $queryBuilder->expects(self::exactly(2))
             ->method('setParameter')
-            ->willReturnCallback(function (string $name, mixed $value) use (&$setParameterCalls, $queryBuilder) {
+            ->willReturnCallback(function (string $name, $value) use (&$setParameterCalls, $queryBuilder) {
                 $setParameterCalls[] = [$name, $value];
 
                 return $queryBuilder;
@@ -769,7 +775,7 @@ final class ORMContextTest extends TestCase
         $setParameterCalls = [];
         $queryBuilder->expects(self::exactly(3))
             ->method('setParameter')
-            ->willReturnCallback(function (string $name, mixed $value) use (&$setParameterCalls, $queryBuilder) {
+            ->willReturnCallback(function (string $name, $value) use (&$setParameterCalls, $queryBuilder) {
                 $setParameterCalls[] = [$name, $value];
 
                 return $queryBuilder;

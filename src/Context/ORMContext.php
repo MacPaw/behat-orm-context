@@ -179,28 +179,36 @@ final class ORMContext implements Context
 
     private function isPostgreSqlPlatform(AbstractPlatform $platform): bool
     {
-        $postgresqlPlatformClass = 'Doctrine\\DBAL\\Platforms\\PostgreSQLPlatform';
-        if (\class_exists($postgresqlPlatformClass) && $platform instanceof $postgresqlPlatformClass) {
-            return true;
+        foreach (
+            [
+                'Doctrine\\DBAL\\Platforms\\PostgreSQLPlatform',
+                'Doctrine\\DBAL\\Platforms\\PostgreSqlPlatform',
+            ] as $class
+        ) {
+            if (\class_exists($class) && $platform instanceof $class) {
+                return true;
+            }
         }
 
-        return method_exists($platform, 'getName') && $platform->getName() === 'postgresql';
+        return false;
     }
 
     private function isMySqlFamilyPlatform(AbstractPlatform $platform): bool
     {
-        $abstractMysqlPlatformClass = 'Doctrine\\DBAL\\Platforms\\AbstractMySQLPlatform';
-        if (\class_exists($abstractMysqlPlatformClass) && $platform instanceof $abstractMysqlPlatformClass) {
-            return true;
+        foreach (
+            [
+                'Doctrine\\DBAL\\Platforms\\AbstractMySQLPlatform',
+                'Doctrine\\DBAL\\Platforms\\MySQLPlatform',
+                'Doctrine\\DBAL\\Platforms\\MySqlPlatform',
+                'Doctrine\\DBAL\\Platforms\\MariaDBPlatform',
+            ] as $class
+        ) {
+            if (\class_exists($class) && $platform instanceof $class) {
+                return true;
+            }
         }
 
-        if (! method_exists($platform, 'getName')) {
-            return false;
-        }
-
-        $name = $platform->getName();
-
-        return \in_array($name, ['mysql', 'mariadb'], true);
+        return false;
     }
 
     /**

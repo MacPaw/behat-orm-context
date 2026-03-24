@@ -1,4 +1,4 @@
-.PHONY: phpunit phpstan phpcs cs-fix rector dev-checks bc-check
+.PHONY: phpunit phpstan phpcs cs-fix rector dev-checks
 
 phpunit:
 	composer phpunit
@@ -17,6 +17,3 @@ rector:
 
 dev-checks:
 	composer dev-checks
-
-bc-check:
-	composer backward-compatibility-check
