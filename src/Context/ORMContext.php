@@ -129,9 +129,21 @@ final class ORMContext implements Context
             return false;
         }
 
-        $fieldMapping = $metadata->getFieldMapping($fieldName);
+        $fieldType = $this->getFieldMappingType($metadata->getFieldMapping($fieldName));
 
-        return \in_array($fieldMapping['type'], ['json', 'json_array'], true);
+        return \in_array($fieldType, ['json', 'json_array'], true);
+    }
+
+    /**
+     * @param array<string, mixed>|object{type: string} $fieldMapping
+     */
+    private function getFieldMappingType($fieldMapping): string
+    {
+        if (\is_array($fieldMapping)) {
+            return (string) $fieldMapping['type'];
+        }
+
+        return $fieldMapping->type;
     }
 
     /**
@@ -144,18 +156,17 @@ final class ORMContext implements Context
     {
         /** @var AbstractPlatform $platform */
         $platform = $this->manager->getConnection()->getDatabasePlatform();
-        $platformName = $platform->getName();
 
         // Normalize JSON value - ensure consistent encoding
         $expectedJson = $this->normalizeJsonValue($expectedValue);
         $paramName = $fieldName . '_json';
 
-        if ($platformName === 'postgresql') {
+        if ($this->isPostgreSqlPlatform($platform)) {
             // PostgreSQL: Use CONCAT to convert JSON to string for comparison
             // CONCAT('', field) effectively casts JSON to text in a DQL-compatible way
             $query->andWhere(sprintf('CONCAT(\'\', e.%s) = :%s', $fieldName, $paramName))
                 ->setParameter($paramName, $expectedJson);
-        } elseif ($platformName === 'mysql') {
+        } elseif ($this->isMySqlFamilyPlatform($platform)) {
             // MySQL: Use JSON_UNQUOTE to extract JSON as string
             $query->andWhere(sprintf('JSON_UNQUOTE(e.%s) = :%s', $fieldName, $paramName))
                 ->setParameter($paramName, $expectedJson);
@@ -164,6 +175,32 @@ final class ORMContext implements Context
             $query->andWhere(sprintf('e.%s = :%s', $fieldName, $paramName))
                 ->setParameter($paramName, $expectedJson);
         }
+    }
+
+    private function isPostgreSqlPlatform(AbstractPlatform $platform): bool
+    {
+        $postgresqlPlatformClass = 'Doctrine\\DBAL\\Platforms\\PostgreSQLPlatform';
+        if (\class_exists($postgresqlPlatformClass) && $platform instanceof $postgresqlPlatformClass) {
+            return true;
+        }
+
+        return method_exists($platform, 'getName') && $platform->getName() === 'postgresql';
+    }
+
+    private function isMySqlFamilyPlatform(AbstractPlatform $platform): bool
+    {
+        $abstractMysqlPlatformClass = 'Doctrine\\DBAL\\Platforms\\AbstractMySQLPlatform';
+        if (\class_exists($abstractMysqlPlatformClass) && $platform instanceof $abstractMysqlPlatformClass) {
+            return true;
+        }
+
+        if (! method_exists($platform, 'getName')) {
+            return false;
+        }
+
+        $name = $platform->getName();
+
+        return \in_array($name, ['mysql', 'mariadb'], true);
     }
 
     /**

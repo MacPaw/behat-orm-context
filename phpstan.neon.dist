@@ -1,5 +1,4 @@
 parameters:
-    excludes_analyse:
     paths:
         - src
     level: max
