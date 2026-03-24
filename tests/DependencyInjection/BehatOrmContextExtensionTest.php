@@ -30,6 +30,6 @@ final class BehatOrmContextExtensionTest extends TestCase
         $extension->load([], $container);
 
         $definition = $container->getDefinition(ORMContext::class);
-        self::assertSame(OrmContext::class, $definition->getClass());
+        self::assertSame(ORMContext::class, $definition->getClass());
     }
 }
