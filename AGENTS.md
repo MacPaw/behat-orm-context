@@ -9,7 +9,7 @@ PHP library (Symfony bundle) providing Behat contexts for Doctrine ORM testing. 
 All defined in `composer.json` scripts section:
 
 - `composer dev-checks` — runs validate + phpstan + phpcs + phpunit (use this as the full CI check)
-- `composer phpunit` — unit tests only (uses `scripts/run-phpunit.sh` with PHPUnit 10+ runner-warning flags)
+- `composer phpunit` — unit tests only (passes PHPUnit runner-warning / deprecation no-fail flags)
 - `composer phpstan` — static analysis (level max)
 - `composer code-style` — PHP_CodeSniffer (PSR-12 + Slevomat rules)
 - `composer code-style-fix` — auto-fix code style issues

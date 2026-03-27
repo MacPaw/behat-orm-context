@@ -65,7 +65,7 @@
         "phpstan": "./vendor/bin/phpstan analyse -l max",
         "code-style": "./vendor/bin/phpcs",
         "code-style-fix": "./vendor/bin/phpcbf",
-        "phpunit": "scripts/run-phpunit.sh",
+        "phpunit": "./vendor/bin/phpunit --do-not-fail-on-phpunit-warning --do-not-fail-on-phpunit-deprecation",
         "phpunit-html-coverage": "XDEBUG_MODE=coverage ./vendor/bin/phpunit --coverage-html=coverage",
         "rector": "./vendor/bin/rector process --dry-run",
         "rector-fix": "./vendor/bin/rector process",

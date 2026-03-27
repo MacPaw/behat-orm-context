@@ -98,7 +98,7 @@ jobs:
               if: matrix.coverage == 'none'
 
             - name: PHPUnit tests and Log Code coverage
-              run: ./scripts/run-phpunit.sh --coverage-clover=coverage.xml
+              run: ./vendor/bin/phpunit --do-not-fail-on-phpunit-warning --do-not-fail-on-phpunit-deprecation --coverage-clover=coverage.xml
               if: matrix.coverage == 'xdebug'
 
             - name: Run codecov
