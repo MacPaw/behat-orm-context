@@ -33,12 +33,12 @@
     ],
     "require": {
         "ext-json": "*",
-        "php": "^7.4 || ^8.0",
+        "php": "^8.0",
         "behat/behat": "^3.0 || 4.x-dev@dev",
-        "symfony/config": "^4.4 || ^5.4 || ^6.0 || ^7.0 || ^8.0",
-        "symfony/dependency-injection": "^4.4 || ^5.4.34 || ^6.0 || ^7.0.2 || ^8.0",
-        "symfony/http-kernel": "^4.4 || ^5.4 || ^6.0 || ^7.0 || ^8.0",
-        "symfony/yaml": "^4.4 || ^5.4 || ^6.0 || ^7.0 || ^8.0",
+        "symfony/config": "^6.0 || ^7.0 || ^8.0",
+        "symfony/dependency-injection": "^6.0 || ^7.0 || ^8.0",
+        "symfony/http-kernel": "^6.0 || ^7.0 || ^8.0",
+        "symfony/yaml": "^6.0 || ^7.0 || ^8.0",
         "macpaw/similar-arrays": "^1.0",
         "doctrine/orm": "^2.0 || ^3.0"
     },
@@ -80,7 +80,7 @@
             "dealerdirect/phpcodesniffer-composer-installer": true
         },
         "platform": {
-            "php": "7.4.33"
+            "php": "8.0.2"
         }
     }
 }

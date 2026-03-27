@@ -18,6 +18,6 @@ All defined in `composer.json` scripts section:
 
 ### Notes
 
-- PHP 8.3 is installed from the `ondrej/php` PPA. The package supports PHP 7.4–8.4.
-- `composer.lock` is committed. `config.platform.php` is set to **7.4.33** so the lock resolves to **PHPUnit 9** and other deps installable on PHP 7.4 CI jobs. On PHP 8.2+ CI, `composer update` refreshes dev tools (e.g. PHPUnit 11).
+- PHP 8.3 is installed from the `ondrej/php` PPA. The package requires **PHP ^8.0** and **Symfony ^6.0** (Symfony 4.x and 5.x are not supported).
+- `composer.lock` is gitignored. `config.platform.php` defaults to **8.0.2** so dependency resolution matches Symfony 6’s minimum PHP.
 - `phpcs.xml.dist` has a deprecation warning about comma-separated array syntax for `forbiddenFunctions` property — cosmetic only, does not affect results.
