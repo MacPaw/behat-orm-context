@@ -9,7 +9,7 @@ PHP library (Symfony bundle) providing Behat contexts for Doctrine ORM testing. 
 All defined in `composer.json` scripts section:
 
 - `composer dev-checks` — runs validate + phpstan + phpcs + phpunit (use this as the full CI check)
-- `composer phpunit` — unit tests only (uses `scripts/run-phpunit.sh`: PHPUnit 10+ gets extra flags for runner warnings; PHPUnit 9 unchanged)
+- `composer phpunit` — unit tests only (uses `scripts/run-phpunit.sh` with PHPUnit 10+ runner-warning flags)
 - `composer phpstan` — static analysis (level max)
 - `composer code-style` — PHP_CodeSniffer (PSR-12 + Slevomat rules)
 - `composer code-style-fix` — auto-fix code style issues
@@ -20,4 +20,3 @@ All defined in `composer.json` scripts section:
 
 - PHP 8.3 is installed from the `ondrej/php` PPA. The package requires **PHP ^8.1** and **Symfony ^6.4** (6.0–6.3 are not supported).
 - `composer.lock` is gitignored. `config.platform.php` defaults to **8.1.0** so dependency resolution matches Symfony 6.4’s minimum PHP.
-- `phpcs.xml.dist` has a deprecation warning about comma-separated array syntax for `forbiddenFunctions` property — cosmetic only, does not affect results.
