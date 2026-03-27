@@ -12,6 +12,7 @@ use Doctrine\DBAL\Platforms\OraclePlatform;
 use Doctrine\ORM\AbstractQuery;
 use Doctrine\ORM\EntityManagerInterface;
 use Doctrine\ORM\Mapping\ClassMetadata;
+use Doctrine\ORM\Query;
 use Doctrine\ORM\QueryBuilder;
 use PHPUnit\Framework\TestCase;
 use RuntimeException;
@@ -60,6 +61,24 @@ final class ORMContextTest extends TestCase
             : \Doctrine\DBAL\Platforms\SqlitePlatform::class;
 
         return new $class();
+    }
+
+    /**
+     * ORM 2: Query is final — mock AbstractQuery. ORM 3: mock Query (PHPUnit 10 enforces getQuery(): Query).
+     */
+    private function createDoctrineQueryMock(): object
+    {
+        $ref = new \ReflectionClass(Query::class);
+
+        if ($ref->isFinal()) {
+            return $this->getMockBuilder(AbstractQuery::class)
+                ->disableOriginalConstructor()
+                ->getMock();
+        }
+
+        return $this->getMockBuilder(Query::class)
+            ->disableOriginalConstructor()
+            ->getMock();
     }
 
     public function testAndISeeCountInRepository(): void
@@ -167,9 +186,7 @@ final class ORMContextTest extends TestCase
         int $count = 1,
         ?array $properties = null
     ): ORMContext {
-        $queryMock = $this->getMockBuilder(AbstractQuery::class)
-            ->disableOriginalConstructor()
-            ->getMock();
+        $queryMock = $this->createDoctrineQueryMock();
 
         $queryMock->expects(self::once())
             ->method('getSingleScalarResult')
@@ -514,7 +531,7 @@ final class ORMContextTest extends TestCase
             });
 
         // Mock Query
-        $query = $this->createMock(AbstractQuery::class);
+        $query = $this->createDoctrineQueryMock();
         $query->expects(self::once())
             ->method('getSingleScalarResult')
             ->willReturn(1);
@@ -607,7 +624,7 @@ final class ORMContextTest extends TestCase
             ->willReturnSelf();
 
         // Mock Query - return different count to trigger exception
-        $query = $this->createMock(AbstractQuery::class);
+        $query = $this->createDoctrineQueryMock();
         $query->expects(self::once())
             ->method('getSingleScalarResult')
             ->willReturn(0); // Expected 1, but got 0
@@ -684,7 +701,7 @@ final class ORMContextTest extends TestCase
             });
 
         // Mock Query
-        $query = $this->createMock(AbstractQuery::class);
+        $query = $this->createDoctrineQueryMock();
         $query->expects(self::once())
             ->method('getSingleScalarResult')
             ->willReturn(1);
@@ -782,7 +799,7 @@ final class ORMContextTest extends TestCase
             });
 
         // Mock Query
-        $query = $this->createMock(AbstractQuery::class);
+        $query = $this->createDoctrineQueryMock();
         $query->expects(self::once())
             ->method('getSingleScalarResult')
             ->willReturn(1);
@@ -852,7 +869,7 @@ final class ORMContextTest extends TestCase
             ->method('setParameter');
 
         // Mock Query
-        $query = $this->createMock(AbstractQuery::class);
+        $query = $this->createDoctrineQueryMock();
         $query->expects(self::once())
             ->method('getSingleScalarResult')
             ->willReturn(1);
@@ -909,7 +926,7 @@ final class ORMContextTest extends TestCase
             ->willReturnSelf();
 
         // Mock Query - return 0 to trigger exception
-        $query = $this->createMock(AbstractQuery::class);
+        $query = $this->createDoctrineQueryMock();
         $query->expects(self::once())
             ->method('getSingleScalarResult')
             ->willReturn(0);

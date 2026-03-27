@@ -8,6 +8,7 @@ use Behat\Behat\Context\Context;
 use Behat\Gherkin\Node\PyStringNode;
 use Doctrine\DBAL\Platforms\AbstractPlatform;
 use Doctrine\ORM\EntityManagerInterface;
+use Doctrine\ORM\Mapping\ClassMetadata;
 use Doctrine\ORM\NonUniqueResultException;
 use Doctrine\ORM\NoResultException;
 use Doctrine\ORM\QueryBuilder;
@@ -121,9 +122,9 @@ final class ORMContext implements Context
     /**
      * Check if a field is mapped as JSON type
      *
-     * @param \Doctrine\ORM\Mapping\ClassMetadata<object> $metadata
+     * @param ClassMetadata<object> $metadata
      */
-    private function isJsonField(\Doctrine\ORM\Mapping\ClassMetadata $metadata, string $fieldName): bool
+    private function isJsonField(ClassMetadata $metadata, string $fieldName): bool
     {
         if (!$metadata->hasField($fieldName)) {
             return false;
@@ -135,15 +136,36 @@ final class ORMContext implements Context
     }
 
     /**
-     * @param array<string, mixed>|object{type: string} $fieldMapping
+     * ORM 2: array mapping; ORM 3: FieldMapping object.
      */
-    private function getFieldMappingType($fieldMapping): string
+    private function getFieldMappingType(mixed $fieldMapping): string
     {
         if (\is_array($fieldMapping)) {
-            return (string) $fieldMapping['type'];
+            return (string) ($fieldMapping['type'] ?? '');
         }
 
-        return $fieldMapping->type;
+        if (
+            \is_object($fieldMapping)
+            && \class_exists(\Doctrine\ORM\Mapping\FieldMapping::class)
+            && $fieldMapping instanceof \Doctrine\ORM\Mapping\FieldMapping
+        ) {
+            return self::normalizeFieldMappingTypeValue($fieldMapping->type);
+        }
+
+        throw new RuntimeException('Unsupported field mapping structure.');
+    }
+
+    private static function normalizeFieldMappingTypeValue(mixed $type): string
+    {
+        if (\is_string($type)) {
+            return $type;
+        }
+
+        if (\is_scalar($type)) {
+            return (string) $type;
+        }
+
+        throw new RuntimeException('Field mapping type must be scalar or string.');
     }
 
     /**
