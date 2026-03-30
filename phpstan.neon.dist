@@ -1,5 +1,7 @@
+includes:
+    - vendor/phpstan/phpstan-doctrine/extension.neon
+
 parameters:
-    excludes_analyse:
     paths:
         - src
     level: max

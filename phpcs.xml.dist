@@ -14,7 +14,19 @@
 
     <rule ref="Generic.PHP.ForbiddenFunctions">
         <properties>
-            <property name="forbiddenFunctions" type="array" value="eval=>NULL,dd=>NULL,die=>NULL,var_dump=>NULL,dump=>NULL,sizeof=>count,delete=>unset,print=>echo,echo=>NULL,print_r=>NULL,create_function=>NULL"/>
+            <property name="forbiddenFunctions" type="array">
+                <element key="eval" value="NULL"/>
+                <element key="dd" value="NULL"/>
+                <element key="die" value="NULL"/>
+                <element key="var_dump" value="NULL"/>
+                <element key="dump" value="NULL"/>
+                <element key="sizeof" value="count"/>
+                <element key="delete" value="unset"/>
+                <element key="print" value="echo"/>
+                <element key="echo" value="NULL"/>
+                <element key="print_r" value="NULL"/>
+                <element key="create_function" value="NULL"/>
+            </property>
         </properties>
     </rule>
     <rule ref="Squiz.WhiteSpace.FunctionSpacing">

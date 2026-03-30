@@ -1,0 +1,5 @@
+services:
+    BehatOrmContext\Context\ORMContext:
+        class: BehatOrmContext\Context\ORMContext
+        public: true
+        autowire: true
