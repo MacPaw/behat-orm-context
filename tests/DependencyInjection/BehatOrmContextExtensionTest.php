@@ -20,7 +20,7 @@ final class BehatOrmContextExtensionTest extends TestCase
 
         self::assertInstanceOf(Extension::class, $extension);
 
-        self::assertTrue($container->has(OrmContext::class));
+        self::assertTrue($container->has(ORMContext::class));
     }
 
     public function testOrmContextIsCorrectlyDefined(): void
@@ -29,7 +29,7 @@ final class BehatOrmContextExtensionTest extends TestCase
         $container = new ContainerBuilder();
         $extension->load([], $container);
 
-        $definition = $container->getDefinition(OrmContext::class);
-        self::assertSame(OrmContext::class, $definition->getClass());
+        $definition = $container->getDefinition(ORMContext::class);
+        self::assertSame(ORMContext::class, $definition->getClass());
     }
 }

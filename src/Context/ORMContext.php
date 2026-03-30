@@ -8,6 +8,7 @@ use Behat\Behat\Context\Context;
 use Behat\Gherkin\Node\PyStringNode;
 use Doctrine\DBAL\Platforms\AbstractPlatform;
 use Doctrine\ORM\EntityManagerInterface;
+use Doctrine\ORM\Mapping\ClassMetadata;
 use Doctrine\ORM\NonUniqueResultException;
 use Doctrine\ORM\NoResultException;
 use Doctrine\ORM\QueryBuilder;
@@ -121,17 +122,50 @@ final class ORMContext implements Context
     /**
      * Check if a field is mapped as JSON type
      *
-     * @param \Doctrine\ORM\Mapping\ClassMetadata<object> $metadata
+     * @param ClassMetadata<object> $metadata
      */
-    private function isJsonField(\Doctrine\ORM\Mapping\ClassMetadata $metadata, string $fieldName): bool
+    private function isJsonField(ClassMetadata $metadata, string $fieldName): bool
     {
         if (!$metadata->hasField($fieldName)) {
             return false;
         }
 
-        $fieldMapping = $metadata->getFieldMapping($fieldName);
+        $fieldType = $this->getFieldMappingType($metadata->getFieldMapping($fieldName));
 
-        return \in_array($fieldMapping['type'], ['json', 'json_array'], true);
+        return \in_array($fieldType, ['json', 'json_array'], true);
+    }
+
+    /**
+     * ORM 2: array mapping; ORM 3: FieldMapping object.
+     */
+    private function getFieldMappingType(mixed $fieldMapping): string
+    {
+        if (\is_array($fieldMapping)) {
+            return (string) ($fieldMapping['type'] ?? '');
+        }
+
+        if (
+            \is_object($fieldMapping)
+            && \class_exists(\Doctrine\ORM\Mapping\FieldMapping::class)
+            && $fieldMapping instanceof \Doctrine\ORM\Mapping\FieldMapping
+        ) {
+            return self::normalizeFieldMappingTypeValue($fieldMapping->type);
+        }
+
+        throw new RuntimeException('Unsupported field mapping structure.');
+    }
+
+    private static function normalizeFieldMappingTypeValue(mixed $type): string
+    {
+        if (\is_string($type)) {
+            return $type;
+        }
+
+        if (\is_scalar($type)) {
+            return (string) $type;
+        }
+
+        throw new RuntimeException('Field mapping type must be scalar or string.');
     }
 
     /**
@@ -144,18 +178,17 @@ final class ORMContext implements Context
     {
         /** @var AbstractPlatform $platform */
         $platform = $this->manager->getConnection()->getDatabasePlatform();
-        $platformName = $platform->getName();
 
         // Normalize JSON value - ensure consistent encoding
         $expectedJson = $this->normalizeJsonValue($expectedValue);
         $paramName = $fieldName . '_json';
 
-        if ($platformName === 'postgresql') {
+        if ($this->isPostgreSqlPlatform($platform)) {
             // PostgreSQL: Use CONCAT to convert JSON to string for comparison
             // CONCAT('', field) effectively casts JSON to text in a DQL-compatible way
             $query->andWhere(sprintf('CONCAT(\'\', e.%s) = :%s', $fieldName, $paramName))
                 ->setParameter($paramName, $expectedJson);
-        } elseif ($platformName === 'mysql') {
+        } elseif ($this->isMySqlFamilyPlatform($platform)) {
             // MySQL: Use JSON_UNQUOTE to extract JSON as string
             $query->andWhere(sprintf('JSON_UNQUOTE(e.%s) = :%s', $fieldName, $paramName))
                 ->setParameter($paramName, $expectedJson);
@@ -164,6 +197,40 @@ final class ORMContext implements Context
             $query->andWhere(sprintf('e.%s = :%s', $fieldName, $paramName))
                 ->setParameter($paramName, $expectedJson);
         }
+    }
+
+    private function isPostgreSqlPlatform(AbstractPlatform $platform): bool
+    {
+        foreach (
+            [
+                'Doctrine\\DBAL\\Platforms\\PostgreSQLPlatform',
+                'Doctrine\\DBAL\\Platforms\\PostgreSqlPlatform',
+            ] as $class
+        ) {
+            if (\class_exists($class) && $platform instanceof $class) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    private function isMySqlFamilyPlatform(AbstractPlatform $platform): bool
+    {
+        foreach (
+            [
+                'Doctrine\\DBAL\\Platforms\\AbstractMySQLPlatform',
+                'Doctrine\\DBAL\\Platforms\\MySQLPlatform',
+                'Doctrine\\DBAL\\Platforms\\MySqlPlatform',
+                'Doctrine\\DBAL\\Platforms\\MariaDBPlatform',
+            ] as $class
+        ) {
+            if (\class_exists($class) && $platform instanceof $class) {
+                return true;
+            }
+        }
+
+        return false;
     }
 
     /**

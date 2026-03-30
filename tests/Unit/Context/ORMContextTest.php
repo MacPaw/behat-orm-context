@@ -8,8 +8,8 @@ use Behat\Gherkin\Node\PyStringNode;
 use BehatOrmContext\Context\ORMContext;
 use Doctrine\DBAL\Connection;
 use Doctrine\DBAL\Platforms\AbstractPlatform;
-use Doctrine\DBAL\Platforms\MySQLPlatform;
-use Doctrine\DBAL\Platforms\PostgreSQLPlatform;
+use Doctrine\DBAL\Platforms\OraclePlatform;
+use Doctrine\ORM\AbstractQuery;
 use Doctrine\ORM\EntityManagerInterface;
 use Doctrine\ORM\Mapping\ClassMetadata;
 use Doctrine\ORM\Query;
@@ -21,6 +21,65 @@ final class ORMContextTest extends TestCase
 {
     private const COUNT = 1;
     private const UUID = 'e809639f-011a-4ae0-9ae3-8fcb460fe950';
+
+    /**
+     * @param array<string, mixed> $mapping
+     *
+     * @return array<string, mixed>|\Doctrine\ORM\Mapping\FieldMapping
+     */
+    private static function fieldMappingFromArray(array $mapping)
+    {
+        if (\class_exists(\Doctrine\ORM\Mapping\FieldMapping::class)) {
+            return \Doctrine\ORM\Mapping\FieldMapping::fromMappingArray($mapping);
+        }
+
+        return $mapping;
+    }
+
+    private static function postgresPlatform(): AbstractPlatform
+    {
+        $class = \class_exists(\Doctrine\DBAL\Platforms\PostgreSQLPlatform::class)
+            ? \Doctrine\DBAL\Platforms\PostgreSQLPlatform::class
+            : \Doctrine\DBAL\Platforms\PostgreSqlPlatform::class;
+
+        return new $class();
+    }
+
+    private static function mysqlPlatform(): AbstractPlatform
+    {
+        $class = \class_exists(\Doctrine\DBAL\Platforms\MySQLPlatform::class)
+            ? \Doctrine\DBAL\Platforms\MySQLPlatform::class
+            : \Doctrine\DBAL\Platforms\MySqlPlatform::class;
+
+        return new $class();
+    }
+
+    private static function sqlitePlatform(): AbstractPlatform
+    {
+        $class = \class_exists(\Doctrine\DBAL\Platforms\SQLitePlatform::class)
+            ? \Doctrine\DBAL\Platforms\SQLitePlatform::class
+            : \Doctrine\DBAL\Platforms\SqlitePlatform::class;
+
+        return new $class();
+    }
+
+    /**
+     * ORM 2: Query is final — mock AbstractQuery. ORM 3: mock Query (PHPUnit 10 enforces getQuery(): Query).
+     */
+    private function createDoctrineQueryMock(): object
+    {
+        $ref = new \ReflectionClass(Query::class);
+
+        if ($ref->isFinal()) {
+            return $this->getMockBuilder(AbstractQuery::class)
+                ->disableOriginalConstructor()
+                ->getMock();
+        }
+
+        return $this->getMockBuilder(Query::class)
+            ->disableOriginalConstructor()
+            ->getMock();
+    }
 
     public function testAndISeeCountInRepository(): void
     {
@@ -127,9 +186,7 @@ final class ORMContextTest extends TestCase
         int $count = 1,
         ?array $properties = null
     ): ORMContext {
-        $queryMock = $this->getMockBuilder(Query::class)
-            ->disableOriginalConstructor()
-            ->getMock();
+        $queryMock = $this->createDoctrineQueryMock();
 
         $queryMock->expects(self::once())
             ->method('getSingleScalarResult')
@@ -164,7 +221,11 @@ final class ORMContextTest extends TestCase
                 ->willReturn(true);
             $metadata->expects(self::exactly($nonNullPropertiesCount))
                 ->method('getFieldMapping')
-                ->willReturn(['type' => 'string']); // Default to non-JSON field for existing tests
+                ->willReturn(self::fieldMappingFromArray([
+                    'type' => 'string',
+                    'fieldName' => 'field',
+                    'columnName' => 'field',
+                ]));
 
             $entityManagerMock->expects(self::once())
                 ->method('getClassMetadata')
@@ -215,7 +276,7 @@ final class ORMContextTest extends TestCase
             $metadata->expects(self::once())
                 ->method('getFieldMapping')
                 ->with('testField')
-                ->willReturn($fieldMapping);
+                ->willReturn(self::fieldMappingFromArray($fieldMapping));
         }
 
         $entityManager = $this->createMock(EntityManagerInterface::class);
@@ -229,19 +290,22 @@ final class ORMContextTest extends TestCase
         self::assertSame($expectedResult, $result);
     }
 
-    public function jsonFieldDetectionProvider(): array
+    public static function jsonFieldDetectionProvider(): array
     {
+        $base = ['fieldName' => 'testField', 'columnName' => 'test_field'];
+
         return [
-            'json field' => [['type' => 'json'], true, true],
-            'json_array field' => [['type' => 'json_array'], true, true],
-            'string field' => [['type' => 'string'], true, false],
-            'integer field' => [['type' => 'integer'], true, false],
-            'non-existent field' => [[], false, false],
+            'json field' => [array_merge($base, ['type' => 'json']), true, true],
+            'json_array field' => [array_merge($base, ['type' => 'json_array']), true, true],
+            'string field' => [array_merge($base, ['type' => 'string']), true, false],
+            'integer field' => [array_merge($base, ['type' => 'integer']), true, false],
+            'non-existent field' => [array_merge($base, ['type' => 'string']), false, false],
         ];
     }
 
     /**
      * @dataProvider normalizeJsonValueProvider
+     *
      * @param mixed $input
      */
     public function testNormalizeJsonValue($input, string $expected): void
@@ -257,7 +321,7 @@ final class ORMContextTest extends TestCase
         self::assertSame($expected, $result);
     }
 
-    public function normalizeJsonValueProvider(): array
+    public static function normalizeJsonValueProvider(): array
     {
         return [
             'array input' => [['key' => 'value'], '{"key":"value"}'],
@@ -276,13 +340,8 @@ final class ORMContextTest extends TestCase
     /**
      * @dataProvider addJsonFieldConditionProvider
      */
-    public function testAddJsonFieldCondition(string $platformName, string $expectedWhereClause): void
+    public function testAddJsonFieldCondition(AbstractPlatform $platform, string $expectedWhereClause): void
     {
-        $platform = $this->createMock(AbstractPlatform::class);
-        $platform->expects(self::once())
-            ->method('getName')
-            ->willReturn($platformName);
-
         $connection = $this->createMock(Connection::class);
         $connection->expects(self::once())
             ->method('getDatabasePlatform')
@@ -312,22 +371,19 @@ final class ORMContextTest extends TestCase
         $method->invoke($context, $queryBuilder, 'testField', ['key' => 'value']);
     }
 
-    public function addJsonFieldConditionProvider(): array
+    public static function addJsonFieldConditionProvider(): array
     {
         return [
-            'postgresql' => ['postgresql', 'CONCAT(\'\', e.testField) = :testField_json'],
-            'mysql' => ['mysql', 'JSON_UNQUOTE(e.testField) = :testField_json'],
-            'sqlite fallback' => ['sqlite', 'e.testField = :testField_json'],
-            'other database fallback' => ['oracle', 'e.testField = :testField_json'],
+            'postgresql' => [self::postgresPlatform(), 'CONCAT(\'\', e.testField) = :testField_json'],
+            'mysql' => [self::mysqlPlatform(), 'JSON_UNQUOTE(e.testField) = :testField_json'],
+            'sqlite fallback' => [self::sqlitePlatform(), 'e.testField = :testField_json'],
+            'other database fallback' => [new OraclePlatform(), 'e.testField = :testField_json'],
         ];
     }
 
     public function testAddJsonFieldConditionWithStringValue(): void
     {
-        $platform = $this->createMock(PostgreSQLPlatform::class);
-        $platform->expects(self::once())
-            ->method('getName')
-            ->willReturn('postgresql');
+        $platform = self::postgresPlatform();
 
         $connection = $this->createMock(Connection::class);
         $connection->expects(self::once())
@@ -360,10 +416,7 @@ final class ORMContextTest extends TestCase
 
     public function testAddJsonFieldConditionWithComplexArray(): void
     {
-        $platform = $this->createMock(MySQLPlatform::class);
-        $platform->expects(self::once())
-            ->method('getName')
-            ->willReturn('mysql');
+        $platform = self::mysqlPlatform();
 
         $connection = $this->createMock(Connection::class);
         $connection->expects(self::once())
@@ -422,15 +475,26 @@ final class ORMContextTest extends TestCase
         $metadata->expects(self::exactly(2))
             ->method('getFieldMapping')
             ->willReturnMap([
-                [$jsonField, ['type' => 'json']],
-                [$regularField, ['type' => 'string']]
+                [
+                    $jsonField,
+                    self::fieldMappingFromArray([
+                        'type' => 'json',
+                        'fieldName' => $jsonField,
+                        'columnName' => $jsonField,
+                    ]),
+                ],
+                [
+                    $regularField,
+                    self::fieldMappingFromArray([
+                        'type' => 'string',
+                        'fieldName' => $regularField,
+                        'columnName' => $regularField,
+                    ]),
+                ],
             ]);
 
         // Mock platform and connection for JSON field handling
-        $platform = $this->createMock(PostgreSQLPlatform::class);
-        $platform->expects(self::once())
-            ->method('getName')
-            ->willReturn('postgresql');
+        $platform = self::postgresPlatform();
 
         $connection = $this->createMock(Connection::class);
         $connection->expects(self::once())
@@ -448,26 +512,26 @@ final class ORMContextTest extends TestCase
             ->with('count(e)')
             ->willReturnSelf();
 
-        // Expect two andWhere calls - one for JSON field, one for regular field
+        $andWhereCalls = [];
         $queryBuilder->expects(self::exactly(2))
             ->method('andWhere')
-            ->withConsecutive(
-                ['CONCAT(\'\', e.metadata) = :metadata_json'],
-                ['e.status = :status']
-            )
-            ->willReturnSelf();
+            ->willReturnCallback(function (string $dql) use (&$andWhereCalls, $queryBuilder) {
+                $andWhereCalls[] = $dql;
 
-        // Expect two setParameter calls
+                return $queryBuilder;
+            });
+
+        $setParameterCalls = [];
         $queryBuilder->expects(self::exactly(2))
             ->method('setParameter')
-            ->withConsecutive(
-                ['metadata_json', '{"type":"premium","tags":["important","urgent"]}'],
-                ['status', 'active']
-            )
-            ->willReturnSelf();
+            ->willReturnCallback(function (string $name, $value) use (&$setParameterCalls, $queryBuilder) {
+                $setParameterCalls[] = [$name, $value];
+
+                return $queryBuilder;
+            });
 
         // Mock Query
-        $query = $this->createMock(Query::class);
+        $query = $this->createDoctrineQueryMock();
         $query->expects(self::once())
             ->method('getSingleScalarResult')
             ->willReturn(1);
@@ -498,6 +562,18 @@ final class ORMContextTest extends TestCase
 
         // This should not throw any exception
         $method->invoke($context, 1, 'App\Entity\TestEntity', $expectedProperties);
+
+        self::assertSame(
+            ['CONCAT(\'\', e.metadata) = :metadata_json', 'e.status = :status'],
+            $andWhereCalls,
+        );
+        self::assertSame(
+            [
+                ['metadata_json', '{"type":"premium","tags":["important","urgent"]}'],
+                ['status', 'active'],
+            ],
+            $setParameterCalls,
+        );
     }
 
     public function testSeeInRepositoryWithJsonFieldPropertiesCountMismatch(): void
@@ -516,13 +592,14 @@ final class ORMContextTest extends TestCase
         $metadata->expects(self::once())
             ->method('getFieldMapping')
             ->with($jsonField)
-            ->willReturn(['type' => 'json']);
+            ->willReturn(self::fieldMappingFromArray([
+                'type' => 'json',
+                'fieldName' => $jsonField,
+                'columnName' => $jsonField,
+            ]));
 
         // Mock platform and connection
-        $platform = $this->createMock(MySQLPlatform::class);
-        $platform->expects(self::once())
-            ->method('getName')
-            ->willReturn('mysql');
+        $platform = self::mysqlPlatform();
 
         $connection = $this->createMock(Connection::class);
         $connection->expects(self::once())
@@ -547,7 +624,7 @@ final class ORMContextTest extends TestCase
             ->willReturnSelf();
 
         // Mock Query - return different count to trigger exception
-        $query = $this->createMock(Query::class);
+        $query = $this->createDoctrineQueryMock();
         $query->expects(self::once())
             ->method('getSingleScalarResult')
             ->willReturn(0); // Expected 1, but got 0
@@ -605,25 +682,26 @@ final class ORMContextTest extends TestCase
             ->with('count(e)')
             ->willReturnSelf();
 
-        // Expect two andWhere calls with indexed parameters
+        $andWhereCalls = [];
         $queryBuilder->expects(self::exactly(2))
             ->method('andWhere')
-            ->withConsecutive(
-                ['e.value.amount = :p0'],
-                ['e.value.currency = :p1']
-            )
-            ->willReturnSelf();
+            ->willReturnCallback(function (string $dql) use (&$andWhereCalls, $queryBuilder) {
+                $andWhereCalls[] = $dql;
 
+                return $queryBuilder;
+            });
+
+        $setParameterCalls = [];
         $queryBuilder->expects(self::exactly(2))
             ->method('setParameter')
-            ->withConsecutive(
-                ['p0', '500000'],
-                ['p1', 'USD']
-            )
-            ->willReturnSelf();
+            ->willReturnCallback(function (string $name, $value) use (&$setParameterCalls, $queryBuilder) {
+                $setParameterCalls[] = [$name, $value];
+
+                return $queryBuilder;
+            });
 
         // Mock Query
-        $query = $this->createMock(Query::class);
+        $query = $this->createDoctrineQueryMock();
         $query->expects(self::once())
             ->method('getSingleScalarResult')
             ->willReturn(1);
@@ -649,6 +727,9 @@ final class ORMContextTest extends TestCase
         $method->setAccessible(true);
 
         $method->invoke($context, 1, 'App\Entity\Balance', $expectedProperties);
+
+        self::assertSame(['e.value.amount = :p0', 'e.value.currency = :p1'], $andWhereCalls);
+        self::assertSame([['p0', '500000'], ['p1', 'USD']], $setParameterCalls);
     }
 
     public function testSeeInRepositoryWithMixedRegularAndEmbeddedProperties(): void
@@ -670,8 +751,22 @@ final class ORMContextTest extends TestCase
         $metadata->expects(self::exactly(2))
             ->method('getFieldMapping')
             ->willReturnMap([
-                ['customerId', ['type' => 'string']],
-                ['status', ['type' => 'string']]
+                [
+                    'customerId',
+                    self::fieldMappingFromArray([
+                        'type' => 'string',
+                        'fieldName' => 'customerId',
+                        'columnName' => 'customerId',
+                    ]),
+                ],
+                [
+                    'status',
+                    self::fieldMappingFromArray([
+                        'type' => 'string',
+                        'fieldName' => 'status',
+                        'columnName' => 'status',
+                    ]),
+                ],
             ]);
 
         // Mock QueryBuilder
@@ -685,27 +780,26 @@ final class ORMContextTest extends TestCase
             ->with('count(e)')
             ->willReturnSelf();
 
-        // Expect three andWhere calls
+        $andWhereCalls = [];
         $queryBuilder->expects(self::exactly(3))
             ->method('andWhere')
-            ->withConsecutive(
-                ['e.customerId = :customerId'],
-                ['e.balanceValue.amount = :p0'],
-                ['e.status = :status']
-            )
-            ->willReturnSelf();
+            ->willReturnCallback(function (string $dql) use (&$andWhereCalls, $queryBuilder) {
+                $andWhereCalls[] = $dql;
 
+                return $queryBuilder;
+            });
+
+        $setParameterCalls = [];
         $queryBuilder->expects(self::exactly(3))
             ->method('setParameter')
-            ->withConsecutive(
-                ['customerId', 'customer-123'],
-                ['p0', '100000'],
-                ['status', 'active']
-            )
-            ->willReturnSelf();
+            ->willReturnCallback(function (string $name, $value) use (&$setParameterCalls, $queryBuilder) {
+                $setParameterCalls[] = [$name, $value];
+
+                return $queryBuilder;
+            });
 
         // Mock Query
-        $query = $this->createMock(Query::class);
+        $query = $this->createDoctrineQueryMock();
         $query->expects(self::once())
             ->method('getSingleScalarResult')
             ->willReturn(1);
@@ -731,6 +825,15 @@ final class ORMContextTest extends TestCase
         $method->setAccessible(true);
 
         $method->invoke($context, 1, 'App\Entity\Balance', $expectedProperties);
+
+        self::assertSame(
+            ['e.customerId = :customerId', 'e.balanceValue.amount = :p0', 'e.status = :status'],
+            $andWhereCalls,
+        );
+        self::assertSame(
+            [['customerId', 'customer-123'], ['p0', '100000'], ['status', 'active']],
+            $setParameterCalls,
+        );
     }
 
     public function testSeeInRepositoryWithNullEmbeddedProperty(): void
@@ -766,7 +869,7 @@ final class ORMContextTest extends TestCase
             ->method('setParameter');
 
         // Mock Query
-        $query = $this->createMock(Query::class);
+        $query = $this->createDoctrineQueryMock();
         $query->expects(self::once())
             ->method('getSingleScalarResult')
             ->willReturn(1);
@@ -823,7 +926,7 @@ final class ORMContextTest extends TestCase
             ->willReturnSelf();
 
         // Mock Query - return 0 to trigger exception
-        $query = $this->createMock(Query::class);
+        $query = $this->createDoctrineQueryMock();
         $query->expects(self::once())
             ->method('getSingleScalarResult')
             ->willReturn(0);
