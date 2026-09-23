@@ -1,0 +1,76 @@
+name: PR Size Label + Claude Guard
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened]
+
+jobs:
+  label:
+    name: Label PR size
+    runs-on: ubuntu-latest
+
+    permissions:
+      pull-requests: write
+
+    steps:
+      - name: Label PR size
+        uses: codelytv/pr-size-labeler@v1
+        with:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          xs_max_size: 10
+          s_max_size: 50
+          m_max_size: 150
+          l_max_size: 500
+          fail_if_xl: false
+
+  skip-notice:
+    name: Skip Claude for large PR
+    needs: label
+    runs-on: ubuntu-latest
+    permissions:
+      pull-requests: write
+
+    steps:
+      - name: Check PR size label
+        id: size
+        run: |
+          labels=$(gh pr view ${{ github.event.pull_request.number }} \
+            --repo ${{ github.repository }} \
+            --json labels \
+            --jq '.labels[].name')
+
+          echo "Labels:"
+          echo "$labels"
+
+          if echo "$labels" | grep -E "size/l|size/xl"; then
+            echo "large=true" >> $GITHUB_OUTPUT
+          else
+            echo "large=false" >> $GITHUB_OUTPUT
+          fi
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Mention claude is recommended
+        if: steps.size.outputs.large != 'true'
+        uses: actions/github-script@v7
+        with:
+          script: |
+            github.rest.issues.createComment({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: context.payload.pull_request.number,
+              body: `> [!TIP]\n> 👌 Please mention **@.claude** to ask AI codereview.`
+            })
+
+
+      - name: Mention claude is NOT recommended
+        if: steps.size.outputs.large == 'true'
+        uses: actions/github-script@v7
+        with:
+          script: |
+            github.rest.issues.createComment({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: context.payload.pull_request.number,
+              body: `> [!WARNING]\n> 🙅 Mentioning **Claude** is not recommended due to PR size is to big.\n>  Please request a manual review instead.`
+            })
